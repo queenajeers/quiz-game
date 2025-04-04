@@ -1,0 +1,16 @@
+@font-face {
+  font-family: puff;
+  src: url("/fonts/DynaPuff/static/DynaPuff-Regular.ttf");
+}
+
+@font-face {
+  font-family: overlock;
+  src: url("/fonts/Overlock-Regular.ttf");
+}
+
+@import "tailwindcss";
+
+@theme {
+  --font-puff: puff, "sans-serif";
+  --font-overlock: overlock, "sans-serif";
+}

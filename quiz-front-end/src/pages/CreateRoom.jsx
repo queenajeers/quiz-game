@@ -1,19 +1,70 @@
 import { CheckIcon } from "lucide-react";
 import React, { useState } from "react";
 import ButtonIcon from "../components/ButtonIcon";
+import { useNavigate } from "react-router-dom";
+import { ref, set } from "firebase/database";
+import { database } from "../config/firebaseConfig";
+import { useFirebaseAuth } from "../contexts/FirebaseAuthContext";
+import Loading from "../components/Loading";
+import { questionsByTemplate, templates } from "../questions/questions";
 
-const templates = [
-  { name: "How Well Do You Know Me?", emoji: "🧠" },
-  { name: "Most Likely To...", emoji: "🎯" },
-  { name: "This or That", emoji: "⚖️" },
-  { name: "Fun Facts About Me", emoji: "🕵️‍♂️" },
-  { name: "Would You Rather", emoji: "🤔" },
-  { name: "First Impressions", emoji: "👀" },
-  { name: "Guess the Memory", emoji: "📸" },
-];
+function generateKey() {
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  let key = "";
+  for (let i = 0; i < 7; i++) {
+    key += letters.charAt(Math.floor(Math.random() * letters.length));
+  }
+  return key;
+}
 
 export default function CreateRoom() {
   const [selectedTemplate, setSelectedTemplate] = useState(templates[0]);
+  const { uid, username, isRetrievingPreviousUser } = useFirebaseAuth();
+  const navigate = useNavigate();
+
+  if (isRetrievingPreviousUser) {
+    return (
+      <>
+        <Loading />
+      </>
+    );
+  }
+
+  const getTotalQuestions = (id) => {
+    let q = questionsByTemplate.find((q) => q.templateId === id);
+    if (q) {
+      return q.questions.length;
+    } else {
+      return 0;
+    }
+  };
+
+  const createRoomClicked = () => {
+    const newRoomID = generateKey();
+    const roomRef = ref(database, `rooms/${newRoomID}/`);
+    console.log({ uid, username });
+    set(roomRef, {
+      createdByUid: uid,
+      createdByUsername: username,
+      questionTemplateId: selectedTemplate.id,
+      totalQuestions: getTotalQuestions(selectedTemplate.id),
+      hostCurrentQuestionIndex: 0,
+      friendCurrentQuestionIndex: 0,
+      friendJoined: false,
+      friendUid: "",
+      friendUsername: "",
+      createdAt: Date.now(),
+      status: "waiting", // or "started", "ended"
+      hostAnswers: [],
+      friendAnswers: [],
+    }).then(() => {
+      navigate("/room-created", {
+        state: {
+          roomID: newRoomID,
+        },
+      });
+    });
+  };
 
   const handleSelect = (template) => {
     setSelectedTemplate(template);
@@ -67,7 +118,10 @@ export default function CreateRoom() {
         </div>
       </div>
 
-      <ButtonIcon className="bg-[#20B078] hover:bg-[#1c9c68] text-white my-4 w-50  flex items-center justify-center gap-2 text-2xl">
+      <ButtonIcon
+        onClick={createRoomClicked}
+        className="bg-[#20B078] hover:bg-[#1c9c68] text-white my-4 w-50  flex items-center justify-center gap-2 text-2xl"
+      >
         Create Room
       </ButtonIcon>
     </div>
